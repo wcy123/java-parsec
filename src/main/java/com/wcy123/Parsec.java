@@ -17,7 +17,7 @@ import rx.functions.Func1;
  * Created by wangchunye on 11/5/16.
  */
 public interface Parsec<T>
-        extends Func1<Iterable<Character>, Iterable<ParserResult<T, Iterable<Character>>>> {
+        extends Func1<Iterable<Character>, Iterable<ParserResult<T>>> {
 
     static Parsec<Character> item(char x) {
         return charIterator -> Iterables.getFirst(charIterator, Character.MIN_VALUE) == x
@@ -41,10 +41,12 @@ public interface Parsec<T>
     }
 
     static <T, R> Parsec<Pair<T, R>> and(Parsec<T> parsecA, Parsec<R> parsecB) {
-        return parsecA.bind(a -> parsecB.bind(b -> returnx(makePair(a, b))));
+        return parsecA.bind(
+                a -> parsecB.bind(
+                        b -> returnx(makePair(a, b))));
     }
 
-    default Iterable<ParserResult<T, Iterable<Character>>> parse(Iterable<Character> charIterator) {
+    default Iterable<ParserResult<T>> parse(Iterable<Character> charIterator) {
         return this.call(charIterator);
     }
 

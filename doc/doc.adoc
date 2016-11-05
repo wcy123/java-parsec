@@ -1,12 +1,45 @@
-= Jackson data binding
+= 语法词法分析
 王纯业;
 :doctype: book
 @asciidoctor_options[:backend] = 'xhtml'
-:snippets: ../src/main/java/com/wcy123/demo
-:test-snippets: ../src/test/java/com/wcy123/demo
+:snippets: ../src/main/java/com/wcy123
+:test-snippets: ../src/test/java/com/wcy123
 :toc:
 :toclevels: 4
 :source-highlighter: highlight.js
+
+本文主要参考 http://www.cs.nott.ac.uk/~pszgmh/pearl.pdf
+
+== 什么是词法语法分析
+
+词法分析的输入一个字符串流，要求的输出是一个词法符号（lexical token）流。例如
+```java
+class A　{};
+```
+
+根据语言的定义，也许会生成下面的词法流
+
+```
+CLASS, ID("A"), OPEN_BRACE, CLOSE_BRACE
+```
+
+语义分析的输入是词法符号流，输出是抽象语法树(AST)。
+
+如果用 java 建模，解释器的输入，可以表示称为 `Iterable<Character>`，解释器的输出可以表示下面的类 `ParserResult`。
+
+[source, java]
+----
+include::{snippets}/parsec/impl/ParserResult.java[]
+----
+
+`T　value` 表示解释器的解析结果，`Iterable<Character> remain` 表示后面还没有解析的字符串。
+
+那么，解释器本身，可以定位为以下的接口。
+
+[source, java]
+----
+include::{snippets}/parsec/stage0/Parsec.java[]
+----
 
 
 == 建立项目
@@ -39,41 +72,60 @@
 </dependency>
 ```
 
-=== transform 的使用
+ === java8 lambda 让这个成为可能
 
 ```java
-default <R> Parsec<R> bind(Func1<T, Parsec<R>> f) {
-    return charIterator -> {
-        final Iterable<Pair<T, CharIterator>> rs = this.parse(charIterator);
+public class ParsecTest {
+    @Test
+    public void main() {
+        ImmutableList<Character> chars = Lists.charactersOf("hello");
+        Parsec.item('h')
+                .and(Parsec.item('e'))
+                .and(Parsec.item('l'))
+                .and(Parsec.item('l'))
+                .and(Parsec.item('o'))
+                .parse(chars).forEach(
+                        p -> {
+                            System.out.println(p.getValue());
+                            System.out.println(p.getRemain());
+                        });
+    }
+}
+```
 
-        List<Pair<R, CharIterator>> retValue = new ArrayList();
-        for (Pair<T, CharIterator> pair : rs) {
-            final Parsec<R> r = f.call(pair.getValue());
-            final CharIterator remain = pair.getRemain();
-            retValue.add(new Pair(r, remain));
+如果没有 lambda 表达式
+
+```java
+    public void main() {
+        ImmutableList<Character> chars = Lists.charactersOf("hello");
+        Parsec.item('h')
+                .and(Parsec.item('e'))
+                .and(Parsec.item('l'))
+                .and(Parsec.item('l'))
+                .and(Parsec.item('o'))
+                .parse(chars).forEach(
+                            (ParserResult<Pair<Pair<Pair<Pair<Character, Character>, Character>, Character>, Character>, Iterable<Character>> p) -> {
+                                System.out.println(p.getValue());
+                            System.out.println(p.getRemain());
+                        });
+    }
+```
+
+如果不用 fluent style , 代码看起来是这样。
+
+```java
+     public void main() {
+        ImmutableList<Character> chars = Lists.charactersOf("hello");
+        final Parsec<Pair<Pair<Pair<Pair<Character, Character>, Character>, Character>, Character>> hello = Parsec.item('h')
+                .and(Parsec.item('e'))
+                .and(Parsec.item('l'))
+                .and(Parsec.item('l'))
+                .and(Parsec.item('o'));
+        final Iterable<ParserResult<Pair<Pair<Pair<Pair<Character, Character>, Character>, Character>, Character>, Iterable<Character>>> results = hello
+                .parse(chars);
+        for (ParserResult<Pair<Pair<Pair<Pair<Character, Character>, Character>, Character>, Character>, Iterable<Character>> p : results) {
+            System.out.println(p.getValue());
+            System.out.println(p.getRemain());
         }
-        return retValue;
-    };
-}
-```
-
-```java
-default <R> Parsec<R> bind(Func1<T, Parsec<R>> f) {
-    return charIterator -> Iterables.transform(this.parse(charIterator),
-            pair -> {
-                final Parsec<R> r = f.call(pair.getValue());
-                final CharIterator remain = pair.getRemain();
-                return new Pair(r, remain);
-            });
-}
-```
-
-
-```java
-    default <R> Parsec<R> bind(Func1<T, Parsec<R>> f) {
-        return charIterator -> Iterables.transform(this.parse(charIterator),
-                pair -> new Pair(
-                        f.call(pair.getValue()),
-                        pair.getRemain()));
     }
 ```
