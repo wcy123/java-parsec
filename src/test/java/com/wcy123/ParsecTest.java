@@ -7,8 +7,6 @@ import com.google.common.collect.Lists;
 
 import com.wcy123.parsec.impl.Pair;
 
-ª
-
 public class ParsecTest {
     @Test
     public void main() {

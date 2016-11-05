@@ -21,12 +21,12 @@ public interface Parsec<T>
                 : Collections.emptyList();
     }
 
-    default Iterable<Pair<T, Iterable<Character>>> parse(Iterable<Character> charIterator) {
-        return this.call(charIterator);
+    static <R> Parsec<R> returnx(R x) {
+        return charIterator -> Collections.singleton(new Pair(x, charIterator));
     }
 
-    default <R> Parsec<R> returnx(R x) {
-        return charIterator -> Collections.singleton(new Pair(x, charIterator));
+    default Iterable<Pair<T, Iterable<Character>>> parse(Iterable<Character> charIterator) {
+        return this.call(charIterator);
     }
 
     default <R> Parsec<R> bind(Func1<T, Parsec<R>> f) {
