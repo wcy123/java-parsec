@@ -15,6 +15,7 @@ import rx.functions.Func1;
  */
 public interface Parsec<T>
         extends Func1<Iterable<Character>, Iterable<Pair<T, Iterable<Character>>>> {
+
     static Parsec<Character> item(char x) {
         return charIterator -> Iterables.getFirst(charIterator, Character.MIN_VALUE) == x
                 ? Collections.singleton(new Pair(x, Iterables.skip(charIterator, 1)))
@@ -25,15 +26,22 @@ public interface Parsec<T>
         return charIterator -> Collections.singleton(new Pair(x, charIterator));
     }
 
+    static Parsec fail() {
+        return charIterator -> Collections.emptyList();
+    }
+
+    static <T, R> Parsec<R> bind(Parsec<T> self, Func1<T, Parsec<R>> f) {
+        return charIterator -> Iterables.concat(
+                Iterables.transform(
+                        self.parse(charIterator),
+                        pair -> f.call(pair.getValue()).parse(pair.getRemain())));
+    }
+
     default Iterable<Pair<T, Iterable<Character>>> parse(Iterable<Character> charIterator) {
         return this.call(charIterator);
     }
 
     default <R> Parsec<R> bind(Func1<T, Parsec<R>> f) {
-        return charIterator -> Iterables.transform(this.parse(charIterator),
-                pair -> new Pair(
-                        f.call(pair.getValue()),
-                        pair.getRemain()));
+        return bind(this, f);
     }
-
 }
