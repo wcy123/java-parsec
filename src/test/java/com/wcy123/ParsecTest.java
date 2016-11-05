@@ -6,16 +6,25 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import com.wcy123.parsec.impl.Pair;
+import com.wcy123.parsec.impl.ParserResult;
 
 public class ParsecTest {
     @Test
     public void main() {
         ImmutableList<Character> chars = Lists.charactersOf("hello");
-        final Parsec<Character> parsec = Parsec.item('d');
-        final Iterable<Pair<Character, Iterable<Character>>> xx = parsec.parse(chars);
-        for (Pair<Character, Iterable<Character>> p : xx) {
+        final Parsec<Pair<Pair<Pair<Pair<Character, Character>, Character>, Character>, Character>> hello =
+                Parsec.item('h')
+                        .and(Parsec.item('e'))
+                        .and(Parsec.item('l'))
+                        .and(Parsec.item('l'))
+                        .and(Parsec.item('o'));
+
+        final Iterable<ParserResult<Pair<Pair<Pair<Pair<Character, Character>, Character>, Character>, Character>, Iterable<Character>>> xx =
+                hello.parse(chars);
+        for (ParserResult<Pair<Pair<Pair<Pair<Character, Character>, Character>, Character>, Character>, Iterable<Character>> p : xx) {
             System.out.println(p.getValue());
             System.out.println(p.getRemain());
         }
+
     }
 }
